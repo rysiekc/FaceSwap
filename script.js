@@ -342,22 +342,17 @@ els.go.addEventListener("click", async () => {
 });
 
 els.cancel.addEventListener("click", () => abortCtrl?.abort());
-els.download.addEventListener("click", async () => {
+els.download.addEventListener("click", () => {
   if (!resultBlob) return;
-  const file = new File([resultBlob], "oblicze-podmiana.jpg", { type: "image/jpeg" });
-  if (navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: "OBLICZE" });
-      return;
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-    }
-  }
   const href = URL.createObjectURL(resultBlob);
   const link = document.createElement("a");
   link.href = href;
-  link.download = file.name;
+  link.download = "oblicze-podmiana.jpg";
+  document.body.appendChild(link);
   link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(href), 2000);
 });
+
 
 setMode("single");
