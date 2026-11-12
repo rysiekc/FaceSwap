@@ -72,7 +72,7 @@ function dropzone(label, hint, onFile) {
   empty.innerHTML = `<span class="text-sm">${label}</span><span class="mt-1 text-xs text-muted">${hint}</span>`;
   const preview = document.createElement("img");
   preview.alt = "";
-  preview.className = "hidden h-52 w-full object-cover";
+  preview.className = "hidden h-52 w-full object-contain";
   const clear = document.createElement("button");
   clear.type = "button";
   clear.className = "absolute right-2 top-2 hidden size-11 rounded-full bg-bg/80";
@@ -112,19 +112,40 @@ function dropzone(label, hint, onFile) {
     },
   };
 }
+async function shrinkImage(file, maxSide = 1280) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      i.src = url;
+    });
+    const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+    if (scale >= 1) return file;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.92));
+    return blob ? new File([blob], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" }) : file;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
-const sourceZone = dropzone("1 · Zdjęcie źródłowe", "jedno zdjęcie, może być grupowe", (file) => {
-  source = file;
-  sourceZone.show(file, () => {
+const sourceZone = dropzone("1 · Zdjęcie źródłowe", "jedno zdjęcie, może być grupowe", async (file) => {
+  source = await shrinkImage(file);
+  sourceZone.show(source, () => {
     source = null;
     sourceZone.show(null, () => {});
     void scan();
   });
   void scan();
 });
-const targetZone = dropzone("2 · Zdjęcie docelowe", "jedno zdjęcie, może być grupowe", (file) => {
-  target = file;
-  targetZone.show(file, () => {
+const targetZone = dropzone ("2 · Zdjęcie docelowe", "jedno zdjęcie, może być grupowe", async (file) => {
+  target = await shrinkImage(file);
+  targetZone.show(target, () => {
     target = null;
     targetZone.show(null, () => {});
     void scan();
